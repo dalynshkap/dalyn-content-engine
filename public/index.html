@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS Content Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --black: #080808; --charcoal: #111; --card: #141414; --card2: #1a1a1a;
+  --border: #222; --border2: #2a2a2a;
+  --orange: #E8490F; --orange-dim: #b83a0c; --orange-glow: rgba(232,73,15,0.12);
+  --gold: #C9A84C; --gold-dim: rgba(201,168,76,0.12);
+  --white: #F0EDE6; --muted: #666; --muted2: #3a3a3a;
+  --green: #4caf7d; --green-dim: rgba(76,175,125,0.1);
+  --blue: #4c8faf; --blue-dim: rgba(76,143,175,0.1);
+  --purple: #8b6faf; --purple-dim: rgba(139,111,175,0.1);
+}
+html { font-size: 16px; scroll-behavior: smooth; }
+body { background: var(--black); color: var(--white); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9999; opacity:0.25;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"); }
+
+.app { display:flex; min-height:100vh; }
+.sidebar { width:220px; min-width:220px; background:var(--charcoal); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+.main { margin-left:220px; flex:1; display:flex; flex-direction:column; }
+
+/* SIDEBAR */
+.sidebar-brand { padding:24px 18px 18px; border-bottom:1px solid var(--border); }
+.sidebar-initials { width:44px; height:44px; background:var(--orange); border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:20px; color:white; margin-bottom:10px; }
+.sidebar-name { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:0.08em; }
+.sidebar-sub { font-size:9px; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; margin-top:2px; }
+.nav { padding:12px 0; flex:1; overflow-y:auto; }
+.nav-section { font-size:9px; letter-spacing:0.3em; text-transform:uppercase; color:var(--muted2); padding:10px 18px 4px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 18px; font-size:13px; color:var(--muted); cursor:pointer; transition:all 0.15s; border-left:2px solid transparent; }
+.nav-item:hover { color:var(--white); background:rgba(255,255,255,0.025); }
+.nav-item.active { color:var(--orange); border-left-color:var(--orange); background:var(--orange-glow); }
+.nav-icon { font-size:14px; width:16px; text-align:center; }
+.sidebar-api { padding:14px; border-top:1px solid var(--border); }
+.api-mini-label { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.api-dot { width:6px; height:6px; border-radius:50%; background:var(--muted2); transition:all 0.3s; flex-shrink:0; }
+.api-dot.live { background:var(--green); box-shadow:0 0 5px var(--green); }
+.api-mini-input { width:100%; background:var(--card); border:1px solid var(--border2); color:var(--white); padding:7px 10px; font-size:11px; border-radius:4px; outline:none; font-family:'DM Sans',sans-serif; transition:border-color 0.2s; }
+.api-mini-input:focus { border-color:var(--orange); }
+.api-mini-btn { width:100%; margin-top:6px; background:var(--orange); border:none; color:white; padding:8px; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; transition:background 0.2s; }
+.api-mini-btn:hover { background:var(--orange-dim); }
+
+/* PAGES */
+.page { display:none; flex-direction:column; flex:1; animation:fadeUp 0.3s ease both; }
+.page.active { display:flex; }
+.page-header { padding:28px 36px 20px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.page-title { font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:0.04em; line-height:1; }
+.page-title span { color:var(--orange); }
+.page-subtitle { font-size:12px; color:var(--muted); font-weight:300; margin-top:3px; }
+
+/* CONTROLS */
+.controls-bar { padding:18px 36px; border-bottom:1px solid var(--border); display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+.ctrl-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:130px; }
+.ctrl-label { font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+select, .text-input { background:var(--card); color:var(--white); border:1px solid var(--border2); padding:8px 10px; font-family:'DM Sans',sans-serif; font-size:13px; border-radius:4px; outline:none; transition:border-color 0.2s; }
+select { appearance:none; -webkit-appearance:none; cursor:pointer; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; }
+select:hover,select:focus,.text-input:focus { border-color:var(--orange); }
+.btn-primary { background:var(--orange); color:white; border:none; padding:9px 24px; font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:0.08em; cursor:pointer; border-radius:4px; transition:all 0.2s; white-space:nowrap; align-self:flex-end; }
+.btn-primary:hover { background:var(--orange-dim); transform:translateY(-1px); }
+.btn-primary:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+.btn-secondary { background:transparent; border:1px solid var(--border2); color:var(--muted); padding:7px 14px; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; transition:all 0.2s; }
+.btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+
+/* CONTENT AREA */
+.content-area { padding:28px 36px; flex:1; }
+.stats-row { display:flex; gap:20px; flex-wrap:wrap; padding:14px 36px; border-bottom:1px solid var(--border); }
+.stat-pill { display:flex; align-items:center; gap:8px; }
+.stat-val { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--orange); }
+.stat-label { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); }
+
+/* STATES */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:42vh; gap:10px; text-align:center; }
+.empty-icon { font-size:52px; opacity:0.1; }
+.empty-title { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--muted); letter-spacing:0.06em; }
+.empty-sub { font-size:12px; color:var(--muted2); }
+.loading-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:42vh; gap:14px; }
+.loading-txt { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--muted); letter-spacing:0.1em; animation:pulse 1.2s ease-in-out infinite; }
+.loading-bar { width:160px; height:2px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.loading-fill { height:100%; background:var(--orange); animation:loadBar 1.4s ease-in-out infinite; }
+.error-box { background:rgba(232,73,15,0.06); border:1px solid rgba(232,73,15,0.22); border-radius:5px; padding:18px 22px; color:#ff7755; font-size:13px; line-height:1.6; }
+
+/* IDEAS GRID */
+.ideas-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px; }
+.idea-card { background:var(--card); border:1px solid var(--border); border-radius:6px; padding:18px; display:flex; flex-direction:column; gap:11px; transition:all 0.2s; position:relative; overflow:hidden; animation:cardIn 0.35s ease both; }
+.idea-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--orange); transform:scaleY(0); transform-origin:bottom; transition:transform 0.2s; }
+.idea-card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+.idea-card:hover::before { transform:scaleY(1); }
+.idea-card:nth-child(1){animation-delay:.04s}.idea-card:nth-child(2){animation-delay:.08s}.idea-card:nth-child(3){animation-delay:.12s}
+.idea-card:nth-child(4){animation-delay:.16s}.idea-card:nth-child(5){animation-delay:.2s}.idea-card:nth-child(6){animation-delay:.24s}
+.idea-card:nth-child(7){animation-delay:.28s}.idea-card:nth-child(8){animation-delay:.32s}.idea-card:nth-child(9){animation-delay:.36s}
+.idea-num { font-family:'Bebas Neue',sans-serif; font-size:11px; color:var(--orange); letter-spacing:0.2em; }
+.idea-hook { font-family:'Bebas Neue',sans-serif; font-size:19px; line-height:1.15; letter-spacing:0.03em; }
+.idea-tags { display:flex; gap:5px; flex-wrap:wrap; }
+.tag { font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:3px 7px; border-radius:2px; font-weight:600; }
+.tag-mindset{background:var(--orange-glow);color:var(--orange);border:1px solid rgba(232,73,15,0.22);}
+.tag-discipline{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,0.18);}
+.tag-identity{background:var(--green-dim);color:var(--green);border:1px solid rgba(76,175,125,0.18);}
+.tag-health{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(76,143,175,0.18);}
+.tag-relationships{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,111,175,0.18);}
+.tag-default{background:rgba(255,255,255,0.03);color:#777;border:1px solid rgba(255,255,255,0.07);}
+.idea-angle { font-size:12px; color:#999; line-height:1.65; font-weight:300; border-top:1px solid var(--border); padding-top:10px; }
+.idea-cta { font-size:11px; color:#555; font-style:italic; }
+.idea-actions { display:flex; gap:6px; margin-top:auto; flex-wrap:wrap; }
+.btn-card { background:transparent; border:1px solid var(--border2); color:var(--muted); padding:5px 10px; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; border-radius:3px; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; transition:all 0.2s; white-space:nowrap; }
+.btn-card:hover { border-color:var(--orange); color:var(--orange); }
+.btn-card.saved { border-color:var(--gold); color:var(--gold); }
+.btn-card.scripted { border-color:var(--green); color:var(--green); }
+
+/* HOOKS */
+.hooks-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+.hook-card { background:var(--card); border:1px solid var(--border); border-radius:5px; padding:16px 18px; cursor:pointer; transition:all 0.2s; animation:cardIn 0.3s ease both; }
+.hook-card:hover { border-color:var(--orange); transform:translateY(-2px); }
+.hook-type { font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+.hook-text { font-family:'Bebas Neue',sans-serif; font-size:17px; line-height:1.2; letter-spacing:0.03em; }
+.hook-card:hover .hook-text { color:var(--orange); }
+
+/* SAVED */
+.saved-list { display:flex; flex-direction:column; gap:8px; }
+.saved-item { background:var(--card); border:1px solid var(--border); border-radius:5px; padding:14px 18px; display:flex; align-items:center; gap:14px; transition:border-color 0.2s; animation:cardIn 0.3s ease both; }
+.saved-item:hover { border-color:var(--border2); }
+.saved-item-content { flex:1; min-width:0; }
+.saved-item-hook { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:0.03em; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.saved-item-angle { font-size:11px; color:var(--muted); font-weight:300; line-height:1.5; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.saved-item-meta { font-size:9px; color:var(--muted2); margin-top:3px; }
+.saved-item-actions { display:flex; gap:6px; flex-shrink:0; }
+
+/* CALENDAR */
+.calendar-wrap { display:flex; flex-direction:column; gap:16px; }
+.cal-header { display:flex; align-items:center; gap:14px; }
+.cal-month { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.06em; }
+.cal-nav { background:transparent; border:1px solid var(--border2); color:var(--muted); width:30px; height:30px; border-radius:4px; cursor:pointer; font-size:14px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+.cal-nav:hover { border-color:var(--orange); color:var(--orange); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.cal-day-header { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); text-align:center; padding:5px 0; }
+.cal-day { background:var(--card); border:1px solid var(--border); border-radius:4px; min-height:74px; padding:7px; cursor:pointer; transition:all 0.2s; position:relative; }
+.cal-day:hover { border-color:var(--border2); }
+.cal-day.today { border-color:var(--orange); }
+.cal-day.other-month { opacity:0.25; }
+.cal-day.has-content { background:var(--card2); }
+.cal-date { font-size:10px; color:var(--muted); font-weight:600; margin-bottom:4px; }
+.cal-day.today .cal-date { color:var(--orange); }
+.cal-entry { font-size:8px; background:var(--orange-glow); border:1px solid rgba(232,73,15,0.18); color:var(--orange); padding:2px 4px; border-radius:2px; margin-bottom:2px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cal-add { font-size:16px; color:var(--muted2); position:absolute; bottom:5px; right:7px; line-height:1; transition:color 0.2s; }
+.cal-day:hover .cal-add { color:var(--orange); }
+
+/* MODALS */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--charcoal); border:1px solid var(--border2); border-radius:8px; width:100%; max-width:660px; max-height:88vh; display:flex; flex-direction:column; animation:fadeUp 0.25s ease both; }
+.modal-header { padding:22px 26px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; }
+.modal-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.05em; }
+.modal-title span { color:var(--orange); }
+.modal-close { background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer; transition:color 0.2s; line-height:1; padding:4px; }
+.modal-close:hover { color:var(--white); }
+.modal-body { padding:22px 26px; overflow-y:auto; flex:1; }
+.modal-loading { display:flex; flex-direction:column; align-items:center; gap:12px; padding:36px 0; }
+.script-section { margin-bottom:18px; }
+.script-label { font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--orange); font-weight:600; margin-bottom:6px; }
+.script-text { font-size:13px; line-height:1.75; color:#ccc; font-weight:300; white-space:pre-wrap; }
+.modal-footer { padding:14px 26px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+
+/* ANIMATIONS */
+
+.inspo-tab { padding:12px 20px; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; font-weight:600; }
+.inspo-tab:hover { color:var(--white); }
+.inspo-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
+.inspo-panel { display:block; }
+.yt-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.yt-card { background:var(--card); border:1px solid var(--border); border-radius:6px; overflow:hidden; transition:all 0.2s; animation:cardIn 0.3s ease both; }
+.yt-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+.yt-thumb { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; cursor:pointer; }
+.yt-info { padding:12px 14px; }
+.yt-title { font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px; cursor:pointer; }
+.yt-title:hover { color:var(--orange); }
+.yt-meta { font-size:10px; color:var(--muted); }
+.yt-embed { width:100%; aspect-ratio:16/9; border:none; }
+.reddit-list { display:flex; flex-direction:column; gap:10px; }
+.reddit-card { background:var(--card); border:1px solid var(--border); border-radius:5px; padding:16px 18px; transition:all 0.2s; animation:cardIn 0.3s ease both; }
+.reddit-card:hover { border-color:var(--border2); }
+.reddit-sub { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--orange); margin-bottom:6px; font-weight:600; }
+.reddit-title { font-size:14px; font-weight:600; margin-bottom:8px; cursor:pointer; }
+.reddit-title:hover { color:var(--orange); }
+.reddit-preview { font-size:12px; color:#888; line-height:1.6; font-weight:300; margin-bottom:10px; }
+.reddit-meta { font-size:10px; color:var(--muted); display:flex; gap:14px; }
+.quotes-masonry { columns:2; gap:14px; }
+@media(max-width:600px){.quotes-masonry{columns:1}}
+.quote-card { background:var(--card); border:1px solid var(--border); border-radius:5px; padding:18px; margin-bottom:14px; break-inside:avoid; cursor:pointer; transition:all 0.2s; animation:cardIn 0.3s ease both; }
+.quote-card:hover { border-color:var(--gold); }
+.quote-text { font-family:'Bebas Neue',sans-serif; font-size:18px; line-height:1.3; letter-spacing:0.03em; margin-bottom:8px; }
+.quote-author { font-size:11px; color:var(--gold); font-weight:600; letter-spacing:0.1em; }
+.quote-card:hover .quote-text { color:var(--orange); }
+.article-list { display:flex; flex-direction:column; gap:10px; }
+.article-card { background:var(--card); border:1px solid var(--border); border-radius:5px; padding:16px 18px; display:flex; gap:16px; align-items:flex-start; transition:all 0.2s; animation:cardIn 0.3s ease both; }
+.article-card:hover { border-color:var(--border2); }
+.article-source { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--blue); font-weight:600; margin-bottom:5px; }
+.article-title { font-size:14px; font-weight:600; margin-bottom:5px; cursor:pointer; }
+.article-title:hover { color:var(--orange); }
+.article-desc { font-size:12px; color:#888; line-height:1.5; font-weight:300; }
+.yt-key-notice { background:var(--orange-glow); border:1px solid rgba(232,73,15,0.2); border-radius:5px; padding:14px 18px; font-size:13px; color:#ccc; line-height:1.7; margin-bottom:20px; }
+.yt-key-notice a { color:var(--orange); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
+@keyframes cardIn { from{opacity:0;transform:translateY(14px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes pulse { 0%,100%{opacity:0.4}50%{opacity:1} }
+@keyframes loadBar { 0%{transform:translateX(-100%)}50%{transform:translateX(0)}100%{transform:translateX(100%)} }
+
+@media(max-width:680px){
+  .sidebar{display:none}.main{margin-left:0}
+  .page-header,.controls-bar,.content-area,.stats-row{padding-left:16px;padding-right:16px}
+  .ideas-grid,.hooks-grid{grid-template-columns:1fr}
+  .cal-grid{gap:3px}.cal-day{min-height:52px;padding:5px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-initials">DS</div>
+    <div class="sidebar-name">Dalyn Shkapich</div>
+    <div class="sidebar-sub">Content Studio</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Create</div>
+    <div class="nav-item active" onclick="switchPage('ideas')"><span class="nav-icon">⚡</span> Idea Generator</div>
+    <div class="nav-item" onclick="switchPage('hooks')"><span class="nav-icon">🎣</span> Hook Generator</div>
+    <div class="nav-section">Manage</div>
+    <div class="nav-item" onclick="switchPage('saved')"><span class="nav-icon">🔖</span> Saved Ideas</div>
+    <div class="nav-item" onclick="switchPage('calendar')"><span class="nav-icon">📅</span> Calendar</div>
+    <div class="nav-section">Inspo</div>
+    <div class="nav-item" onclick="switchPage('inspo')"><span class="nav-icon">🔥</span> Inspo Feed</div>
+  </nav>
+  <div class="sidebar-api">
+    <div class="api-mini-label"><span class="api-dot" id="apiDot"></span><span id="apiStatusText">No key saved</span></div>
+    <input class="api-mini-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off"/>
+    <button class="api-mini-btn" onclick="saveApiKey()">Save Key</button>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- IDEAS -->
+  <div class="page active" id="page-ideas">
+    <div class="page-header">
+      <div><div class="page-title">IDEA <span>GENERATOR</span></div><div class="page-subtitle">AI-powered ideas built around your philosophy</div></div>
+    </div>
+    <div class="controls-bar">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Topic</div>
+        <select id="topicSelect">
+          <option value="any">Any Topic</option>
+          <optgroup label="Mindset & Growth">
+            <option>Mindset & Mental Strength</option>
+            <option>Discipline & Habits</option>
+            <option>Identity & Self-Image</option>
+            <option>Adversity & Resilience</option>
+            <option>Purpose & Meaning</option>
+            <option>Confidence & Courage</option>
+          </optgroup>
+          <optgroup label="Action & Success">
+            <option>Taking Action</option>
+            <option>Productivity & Focus</option>
+            <option>Goal Setting & Systems</option>
+            <option>Success & Work Ethic</option>
+          </optgroup>
+          <optgroup label="Health & Body">
+            <option>Fitness & Training</option>
+            <option>Health & Wellness</option>
+            <option>Nutrition & Fueling</option>
+            <option>Sleep & Recovery</option>
+          </optgroup>
+          <optgroup label="Life & Relationships">
+            <option>Relationships & Connection</option>
+            <option>Communication & Conflict</option>
+            <option>Social Skills & Influence</option>
+            <option>Gratitude & Perspective</option>
+          </optgroup>
+          <optgroup label="Practical Tips">
+            <option>Life Hacks & Practical Tips</option>
+            <option>Money & Financial Mindset</option>
+            <option>Mental Health & Anxiety</option>
+            <option>Environment Design</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Style</div>
+        <select id="styleSelect">
+          <option>Talking Head / Rant</option>
+          <option>Personal Story Hook</option>
+          <option>Controversial Take</option>
+          <option>Quote Breakdown</option>
+          <option>Myth Bust</option>
+          <option>Challenge / Call to Action</option>
+          <option>Quick List (1-2-3)</option>
+          <option>Question Hook</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Count</div>
+        <select id="countSelect">
+          <option value="3">3 Ideas</option>
+          <option value="6" selected>6 Ideas</option>
+          <option value="9">9 Ideas</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="generateBtn" onclick="generateIdeas()">⚡ GENERATE</button>
+    </div>
+    <div class="stats-row" id="statsRow" style="display:none">
+      <div class="stat-pill"><span class="stat-val" id="statGenerated">0</span><span class="stat-label">Generated</span></div>
+      <div class="stat-pill"><span class="stat-val" id="statSaved">0</span><span class="stat-label">Saved</span></div>
+      <div class="stat-pill"><span class="stat-val" id="statSessions">0</span><span class="stat-label">Sessions</span></div>
+    </div>
+    <div class="content-area" id="ideasArea">
+      <div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-title">Ready When You Are</div><div class="empty-sub">Pick a topic and hit Generate, Dalyn.</div></div>
+    </div>
+  </div>
+
+  <!-- HOOKS -->
+  <div class="page" id="page-hooks">
+    <div class="page-header">
+      <div><div class="page-title">HOOK <span>GENERATOR</span></div><div class="page-subtitle">Stop-the-scroll openers — click any hook to copy it</div></div>
+    </div>
+    <div class="controls-bar">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Hook Type</div>
+        <select id="hookTypeSelect">
+          <option>Bold Statement</option>
+          <option>Provocative Question</option>
+          <option>Story Opener</option>
+          <option>Shocking Fact</option>
+          <option>Contrarian Take</option>
+          <option>Common Mistake</option>
+          <option>Secret Nobody Tells You</option>
+          <option>Direct Challenge</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Topic Area</div>
+        <select id="hookTopicSelect">
+          <option>Any</option>
+          <option>Mindset</option>
+          <option>Discipline</option>
+          <option>Fitness</option>
+          <option>Relationships</option>
+          <option>Success</option>
+          <option>Health</option>
+          <option>Confidence</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Count</div>
+        <select id="hookCountSelect">
+          <option value="6">6 Hooks</option>
+          <option value="12" selected>12 Hooks</option>
+          <option value="20">20 Hooks</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="hookBtn" onclick="generateHooks()">🎣 GENERATE</button>
+    </div>
+    <div class="content-area" id="hooksArea">
+      <div class="empty-state"><div class="empty-icon">🎣</div><div class="empty-title">Generate Your Hooks</div><div class="empty-sub">Click any hook to instantly copy it.</div></div>
+    </div>
+  </div>
+
+  <!-- SAVED -->
+  <div class="page" id="page-saved">
+    <div class="page-header">
+      <div><div class="page-title">SAVED <span>IDEAS</span></div><div class="page-subtitle">Your personal content bank</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="exportTxt()">⬇ Export .TXT</button>
+        <button class="btn-secondary" onclick="clearSaved()" style="color:#e05533;border-color:rgba(224,85,51,0.3)">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="content-area" id="savedArea">
+      <div class="empty-state"><div class="empty-icon">🔖</div><div class="empty-title">Nothing Saved Yet</div><div class="empty-sub">Hit Save on any idea to add it here.</div></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="page" id="page-calendar">
+    <div class="page-header">
+      <div><div class="page-title">CONTENT <span>CALENDAR</span></div><div class="page-subtitle">Plan and schedule your content — click any day to add</div></div>
+    </div>
+    <div class="content-area">
+      <div class="calendar-wrap">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+          <div class="cal-month" id="calMonthLabel"></div>
+          <button class="cal-nav" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- INSPO -->
+  <div class="page" id="page-inspo">
+    <div class="page-header">
+      <div><div class="page-title">INSPO <span>FEED</span></div><div class="page-subtitle">YouTube videos, Reddit posts, articles & quotes — all in one place</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="ctrl-label">YouTube API Key</div>
+          <input class="text-input" type="password" id="ytKeyInput" placeholder="AIza..." style="width:220px;font-size:12px" autocomplete="off"/>
+        </div>
+        <button class="btn-secondary" onclick="saveYtKey()">Save YT Key</button>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Search Topic</div>
+        <input class="text-input" id="inspoSearch" placeholder="e.g. discipline, mindset, resilience..." style="min-width:200px"/>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Quick Topics</div>
+        <select id="inspoQuick" onchange="document.getElementById('inspoSearch').value=this.value">
+          <option value="">— pick one —</option>
+          <option value="mindset motivation rant">Mindset Rants</option>
+          <option value="discipline habits success">Discipline & Habits</option>
+          <option value="stoicism stoic philosophy">Stoicism</option>
+          <option value="self improvement personal development">Self Improvement</option>
+          <option value="fitness motivation workout">Fitness Motivation</option>
+          <option value="confidence courage fear">Confidence & Courage</option>
+          <option value="adversity resilience hard times">Adversity & Resilience</option>
+          <option value="purpose meaning life">Purpose & Meaning</option>
+          <option value="relationships connection social">Relationships</option>
+          <option value="success work ethic grind">Success & Work Ethic</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="loadInspo()" id="inspoBtn">🔥 LOAD FEED</button>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 36px">
+      <div class="inspo-tab active" id="tab-youtube" onclick="switchInspoTab('youtube')">🎥 YouTube</div>
+      <div class="inspo-tab" id="tab-reddit" onclick="switchInspoTab('reddit')">💬 Reddit</div>
+      <div class="inspo-tab" id="tab-quotes" onclick="switchInspoTab('quotes')">⚡ Quotes</div>
+      <div class="inspo-tab" id="tab-articles" onclick="switchInspoTab('articles')">📰 Articles</div>
+    </div>
+
+    <div class="content-area" style="padding-top:20px">
+      <div id="inspo-youtube" class="inspo-panel">
+        <div class="empty-state"><div class="empty-icon">🎥</div><div class="empty-title">Search For Inspo</div><div class="empty-sub">Enter a topic and hit Load Feed. Add your YouTube API key first.</div></div>
+      </div>
+      <div id="inspo-reddit" class="inspo-panel" style="display:none">
+        <div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">Reddit Feed</div><div class="empty-sub">Hit Load Feed to pull top posts from self-improvement communities.</div></div>
+      </div>
+      <div id="inspo-quotes" class="inspo-panel" style="display:none">
+        <div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-title">Power Quotes</div><div class="empty-sub">Hit Load Feed to generate quotes on your topic.</div></div>
+      </div>
+      <div id="inspo-articles" class="inspo-panel" style="display:none">
+        <div class="empty-state"><div class="empty-icon">📰</div><div class="empty-title">Articles & Blogs</div><div class="empty-sub">Hit Load Feed to pull articles from top personal development sources.</div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+
+<!-- EXPAND MODAL -->
+<div class="modal-overlay" id="expandModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--orange);margin-bottom:4px">Deep Dive</div><div class="modal-title" id="expandModalTitle">—</div></div>
+      <button class="modal-close" onclick="closeModal('expandModal')">✕</button>
+    </div>
+    <div class="modal-body" id="expandModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="copyExpand()">Copy</button>
+      <button class="btn-secondary" onclick="closeModal('expandModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUOTES MODAL -->
+<div class="modal-overlay" id="quotesModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:4px">Quotes & Stats</div><div class="modal-title" id="quotesModalTitle">—</div></div>
+      <button class="modal-close" onclick="closeModal('quotesModal')">✕</button>
+    </div>
+    <div class="modal-body" id="quotesModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="copyQuotes()">Copy All</button>
+      <button class="btn-secondary" onclick="closeModal('quotesModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ONE-LINERS MODAL -->
+<div class="modal-overlay" id="onelinersModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--orange);margin-bottom:4px">Power One-Liners</div><div class="modal-title" id="onelinersModalTitle">—</div></div>
+      <button class="modal-close" onclick="closeModal('onelinersModal')">✕</button>
+    </div>
+    <div class="modal-body" id="onelinersModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('onelinersModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT MODAL -->
+<div class="modal-overlay" id="scriptModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--orange);margin-bottom:4px">Full Video Script</div><div class="modal-title" id="scriptModalTitle">—</div></div>
+      <button class="modal-close" onclick="closeModal('scriptModal')">✕</button>
+    </div>
+    <div class="modal-body" id="scriptModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="copyScript()">Copy Script</button>
+      <button class="btn-secondary" onclick="saveScriptToSaved()">Save Idea</button>
+      <button class="btn-secondary" onclick="closeModal('scriptModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAL MODAL -->
+<div class="modal-overlay" id="calModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">ADD TO <span>CALENDAR</span></div>
+      <button class="modal-close" onclick="closeModal('calModal')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div><div class="ctrl-label" style="margin-bottom:5px">Date</div><input class="text-input" type="date" id="calDateInput" style="width:100%"/></div>
+      <div><div class="ctrl-label" style="margin-bottom:5px">Content / Note</div><textarea class="text-input" id="calNoteInput" rows="4" style="width:100%;resize:vertical" placeholder="Paste a hook, idea, or note..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" style="font-size:16px;padding:8px 22px" onclick="saveCalEntry()">Add to Calendar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// STATE
+let apiKey = '';
+let savedIdeas = JSON.parse(localStorage.getItem('ds_saved')||'[]');
+let calEntries = JSON.parse(localStorage.getItem('ds_cal')||'{}');
+let totalGenerated = 0, sessions = 0;
+let currentScript = null, currentScriptIdea = null;
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+
+// API KEY — saved permanently in localStorage
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val.startsWith('sk-ant-')) { setApiStatus('Invalid key',''); return; }
+  apiKey = val;
+  localStorage.setItem('ds_apikey', val);
+  document.getElementById('apiKeyInput').value = '••••••••••••••••';
+  setApiStatus('Live — key saved','live');
+}
+function setApiStatus(msg, cls) {
+  document.getElementById('apiDot').className = 'api-dot ' + cls;
+  document.getElementById('apiStatusText').textContent = msg;
+}
+// Auto-load saved key on startup
+(function() {
+  const saved = localStorage.getItem('ds_apikey');
+  if (saved && saved.startsWith('sk-ant-')) {
+    apiKey = saved;
+    setTimeout(() => {
+      document.getElementById('apiKeyInput').value = '••••••••••••••••';
+      setApiStatus('Live — key saved','live');
+    }, 50);
+  }
+})();
+
+// NAV
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const map = {ideas:0,hooks:1,saved:2,calendar:3,inspo:4};
+  if(map[page]!==undefined) document.querySelectorAll('.nav-item')[map[page]].classList.add('active');
+  if(page==='saved') renderSavedPage();
+  if(page==='calendar') renderCalendar();
+}
+
+// PHILOSOPHY
+const PHIL = `Dalyn Shkapich's philosophy (use as inspiration for short-form personal development content):
+No shame in being weak — shame is staying weak. A calm ocean never made a skilled sailor. Nothing changes if nothing changes. Do hard things. Comfort is the enemy of progress. Choose your hard. Just take action — waiting is the only wrong decision. Losers fear rejection, winners fear regret. Extreme ownership even when it's not your fault. If you don't give up you can't lose. Brick by brick. Adversity builds character — it's a gift. You fall to the level of your systems. Ships are safe in the harbor but that's not what ships are for. Be a buffalo — ride into the storm. Great people do things before they're ready. Courage is a skill not a trait. Behavior shapes belief. Track progress not perfection. Done beats perfect. The first 90 minutes set the tone. Design your environment. Chase purpose not pleasure. Identity shapes your actions. Consistency beats intensity. If you're not changing you're choosing it. Health is wealth. Rest don't quit. Stay in the game longest — that's the real advantage. Seek connections, laughter, relationships — these make a good life. Gratitude is not dependent on circumstance. Energy flows where attention goes. Every goal needs a daily action or it's just a dream. Your thoughts become actions become habits become character become destiny.`;
+
+// API
+async function callAPI(prompt) {
+  if (!apiKey) throw new Error('No API key — paste yours in the sidebar.');
+  const res = await fetch('/api/generate', {
+    method:'POST', headers:{'Content-Type':'application/json','x-api-key':apiKey},
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,messages:[{role:'user',content:prompt}]})
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(typeof data.error==='string'?data.error:data.error.message);
+  const txt = data.content.map(i=>i.text||'').join('');
+  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+}
+
+function showLoading(id) {
+  document.getElementById(id).innerHTML=`<div class="loading-wrap"><div class="loading-txt">Generating...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+}
+
+// IDEAS
+async function generateIdeas() {
+  if (!apiKey) { setApiStatus('Paste API key!',''); return; }
+  const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='...';
+  showLoading('ideasArea');
+  const topic = document.getElementById('topicSelect').options[document.getElementById('topicSelect').selectedIndex].text;
+  const style = document.getElementById('styleSelect').options[document.getElementById('styleSelect').selectedIndex].text;
+  const count = document.getElementById('countSelect').value;
+  const prompt = `${PHIL}
+
+Generate exactly ${count} short-form video content ideas. Topic: "${topic}". Style: "${style}".
+
+Each idea must be FULLY developed with rich detail — not vague or generic. Think like a content strategist who knows Dalyn deeply.
+
+Return ONLY valid JSON array (no markdown):
+[{
+  "hook": "Scroll-stopping title — bold, provocative, max 10 words. Should make someone stop dead in their feed.",
+  "angle": "4-6 sentences. Be SPECIFIC: what exact point does Dalyn make? What story or example backs it up? What is the emotional tension or contrast that makes it compelling? What does the audience walk away believing or feeling? Make this meaty and actionable.",
+  "keypoints": "3 specific bullet points Dalyn should hit in the video, written as talking points",
+  "cta": "One punchy specific closing call to action — not generic like 'follow me', make it tied to the content",
+  "tags": ["tag1","tag2"]
+}]
+
+Tags only from: mindset, discipline, action, identity, adversity, purpose, confidence, habits, fitness, health, relationships, success, productivity, gratitude
+Hooks must be BOLD and raw. Sound like Dalyn — real, direct, zero corporate self-help fluff. Every idea should feel like it could go viral.`;
+  try {
+    const ideas = await callAPI(prompt);
+    totalGenerated += ideas.length; sessions++;
+    const html = ideas.map((idea,i)=>`
+      <div class="idea-card">
+        <div class="idea-num">IDEA ${String(i+1).padStart(2,'0')}</div>
+        <div class="idea-hook">${idea.hook}</div>
+        <div class="idea-tags">${(idea.tags||[]).map(t=>`<span class="tag ${tagClass(t)}">${t}</span>`).join('')}</div>
+        <div class="idea-angle">${idea.angle}</div>
+        ${idea.keypoints ? `<div style="margin-top:2px;padding:10px 12px;background:rgba(232,73,15,0.05);border-radius:4px;border:1px solid rgba(232,73,15,0.12)"><div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;font-weight:600">Key Talking Points</div><div style="font-size:12px;color:#888;line-height:1.7;white-space:pre-line">${idea.keypoints}</div></div>` : ''}
+        <div class="idea-cta">🎯 "${idea.cta}"</div>
+        <div class="idea-actions">
+          <button class="btn-card" onclick="saveIdea(this,${esc(idea)})">🔖 Save</button>
+          <button class="btn-card" onclick="openScript(this,${esc(idea)})">📝 Script</button>
+          <button class="btn-card" onclick="expandIdea(this,${esc(idea)})">🔥 Expand</button>
+          <button class="btn-card" onclick="getQuotesStats(this,${esc(idea)})">💬 Quotes & Stats</button>
+          <button class="btn-card" onclick="getOneLiners(this,${esc(idea)})">⚡ One-Liners</button>
+          <button class="btn-card" onclick="scheduleIdea(${esc(idea)})">📅 Schedule</button>
+        </div>
+      </div>`).join('');
+    document.getElementById('ideasArea').innerHTML=`<div class="ideas-grid">${html}</div>`;
+    document.getElementById('statsRow').style.display='flex';
+    updateStats();
+  } catch(e) {
+    document.getElementById('ideasArea').innerHTML=`<div class="error-box"><strong>Error:</strong> ${e.message}</div>`;
+  } finally { btn.disabled=false; btn.textContent='⚡ GENERATE'; }
+}
+
+function tagClass(t){
+  if(['mindset','adversity','purpose'].includes(t)) return 'tag-mindset';
+  if(['discipline','habits','productivity'].includes(t)) return 'tag-discipline';
+  if(['identity','success'].includes(t)) return 'tag-identity';
+  if(['health','fitness','nutrition'].includes(t)) return 'tag-health';
+  if(['relationships','gratitude','social'].includes(t)) return 'tag-relationships';
+  return 'tag-default';
+}
+function esc(obj){ return JSON.stringify(obj).replace(/"/g,'&quot;'); }
+
+// SCRIPT
+async function openScript(btn, idea) {
+  btn.textContent='⏳'; btn.disabled=true;
+  currentScriptIdea = idea;
+  document.getElementById('scriptModalTitle').textContent = idea.hook;
+  document.getElementById('scriptModalBody').innerHTML=`<div class="modal-loading"><div class="loading-txt">Writing Script...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  document.getElementById('scriptModal').classList.add('open');
+  const prompt = `${PHIL}\n\nWrite a complete short-form video script for Dalyn Shkapich.\nHook: "${idea.hook}"\nAngle: "${idea.angle}"\n\nReturn ONLY valid JSON (no markdown):\n{"hook":"exact opening 1-2 sentences to say on camera","setup":"2-3 sentences setting up the tension or problem","body":"main content 4-6 sentences with core teaching — raw and real","punchline":"1-2 sentences landing the key insight","cta":"exact closing call to action to say on camera","duration":"estimated duration e.g. 45-60 seconds","notes":"1-2 quick filming delivery tips"}`;
+  try {
+    const s = await callAPI(prompt);
+    currentScript = s;
+    document.getElementById('scriptModalBody').innerHTML=`
+      <div class="script-section"><div class="script-label">⚡ Hook — say this first</div><div class="script-text">${s.hook}</div></div>
+      <div class="script-section"><div class="script-label">🎯 Setup</div><div class="script-text">${s.setup}</div></div>
+      <div class="script-section"><div class="script-label">💪 Body</div><div class="script-text">${s.body}</div></div>
+      <div class="script-section"><div class="script-label">🔑 Punchline</div><div class="script-text">${s.punchline}</div></div>
+      <div class="script-section"><div class="script-label">📣 CTA</div><div class="script-text">${s.cta}</div></div>
+      <div style="display:flex;gap:20px;margin-top:4px;flex-wrap:wrap">
+        <div><div class="script-label">⏱ Duration</div><div class="script-text" style="color:var(--orange)">${s.duration}</div></div>
+        <div style="flex:1"><div class="script-label">🎬 Filming Tips</div><div class="script-text">${s.notes}</div></div>
+      </div>`;
+    btn.textContent='📝 Script'; btn.disabled=false; btn.classList.add('scripted');
+  } catch(e) {
+    document.getElementById('scriptModalBody').innerHTML=`<div class="error-box">${e.message}</div>`;
+    btn.textContent='📝 Script'; btn.disabled=false;
+  }
+}
+
+function copyScript() {
+  if (!currentScript) return;
+  const s = currentScript;
+  navigator.clipboard.writeText(`HOOK:\n${s.hook}\n\nSETUP:\n${s.setup}\n\nBODY:\n${s.body}\n\nPUNCHLINE:\n${s.punchline}\n\nCTA:\n${s.cta}`)
+    .then(()=>alert('Script copied!'));
+}
+function saveScriptToSaved() { if(currentScriptIdea) saveIdeaDirect(currentScriptIdea); closeModal('scriptModal'); }
+
+// SAVED
+function saveIdea(btn, idea) { saveIdeaDirect(idea); btn.textContent='✓ Saved'; btn.classList.add('saved'); btn.disabled=true; }
+function saveIdeaDirect(idea) {
+  savedIdeas.push({...idea, savedAt: new Date().toLocaleDateString()});
+  localStorage.setItem('ds_saved', JSON.stringify(savedIdeas));
+  updateStats();
+}
+function renderSavedPage() {
+  const area = document.getElementById('savedArea');
+  if (!savedIdeas.length) { area.innerHTML=`<div class="empty-state"><div class="empty-icon">🔖</div><div class="empty-title">Nothing Saved Yet</div><div class="empty-sub">Hit Save on any idea card.</div></div>`; return; }
+  area.innerHTML=`<div class="saved-list">${savedIdeas.slice().reverse().map((idea,i)=>`
+    <div class="saved-item">
+      <div class="saved-item-content">
+        <div class="saved-item-hook">${idea.hook}</div>
+        <div class="saved-item-angle">${idea.angle}</div>
+        <div class="saved-item-meta">${(idea.tags||[]).join(' · ')}${idea.savedAt?' · Saved '+idea.savedAt:''}</div>
+      </div>
+      <div class="saved-item-actions">
+        <button class="btn-card" onclick="scheduleIdea(${esc(idea)})">📅</button>
+        <button class="btn-card" style="color:#e05533;border-color:rgba(224,85,51,0.3)" onclick="deleteSaved(${savedIdeas.length-1-i})">✕</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function deleteSaved(i) { savedIdeas.splice(i,1); localStorage.setItem('ds_saved',JSON.stringify(savedIdeas)); renderSavedPage(); updateStats(); }
+function clearSaved() { if(!confirm('Clear all saved ideas?')) return; savedIdeas=[]; localStorage.setItem('ds_saved','[]'); renderSavedPage(); updateStats(); }
+function exportTxt() {
+  if (!savedIdeas.length) { alert('No saved ideas to export.'); return; }
+  const txt = savedIdeas.map((idea,i)=>`IDEA ${i+1}: ${idea.hook}\n\n${idea.angle}\n\nCTA: ${idea.cta}\nTags: ${(idea.tags||[]).join(', ')}\n\n${'─'.repeat(50)}`).join('\n\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([`DALYN SHKAPICH — CONTENT IDEAS\n${'═'.repeat(50)}\n\n${txt}`],{type:'text/plain'})); a.download='dalyn-content-ideas.txt'; a.click();
+}
+
+// HOOKS
+async function generateHooks() {
+  if (!apiKey) { setApiStatus('Paste API key!',''); return; }
+  const btn=document.getElementById('hookBtn'); btn.disabled=true; btn.textContent='...';
+  showLoading('hooksArea');
+  const type = document.getElementById('hookTypeSelect').options[document.getElementById('hookTypeSelect').selectedIndex].text;
+  const topic = document.getElementById('hookTopicSelect').options[document.getElementById('hookTopicSelect').selectedIndex].text;
+  const count = document.getElementById('hookCountSelect').value;
+  const prompt = `${PHIL}\n\nGenerate exactly ${count} scroll-stopping opening hooks for short-form video. Hook type: "${type}". Topic: "${topic}".\n\nReturn ONLY valid JSON array (no markdown):\n[{"text":"the hook line — under 12 words"}]\n\nEach hook must be unique, punchy, make someone stop scrolling. Raw and direct — Dalyn's voice.`;
+  try {
+    const hooks = await callAPI(prompt);
+    const html = hooks.map(h=>`
+      <div class="hook-card" onclick="copyHook(this,'${h.text.replace(/'/g,"\\'")}')">
+        <div class="hook-type">${type} · click to copy</div>
+        <div class="hook-text">${h.text}</div>
+      </div>`).join('');
+    document.getElementById('hooksArea').innerHTML=`<div class="hooks-grid">${html}</div>`;
+  } catch(e) {
+    document.getElementById('hooksArea').innerHTML=`<div class="error-box">${e.message}</div>`;
+  } finally { btn.disabled=false; btn.textContent='🎣 GENERATE'; }
+}
+function copyHook(el,text) {
+  navigator.clipboard.writeText(text).then(()=>{
+    el.style.borderColor='var(--green)'; el.querySelector('.hook-type').textContent='✓ Copied!';
+    setTimeout(()=>{ el.style.borderColor=''; el.querySelector('.hook-type').textContent='click to copy'; },1500);
+  });
+}
+
+// CALENDAR
+function scheduleIdea(idea) {
+  document.getElementById('calNoteInput').value=idea.hook;
+  document.getElementById('calDateInput').value=new Date().toISOString().split('T')[0];
+  document.getElementById('calModal').classList.add('open');
+  switchPage('calendar');
+}
+function saveCalEntry() {
+  const date=document.getElementById('calDateInput').value, note=document.getElementById('calNoteInput').value.trim();
+  if(!date||!note) return;
+  if(!calEntries[date]) calEntries[date]=[];
+  calEntries[date].push(note);
+  localStorage.setItem('ds_cal',JSON.stringify(calEntries));
+  closeModal('calModal'); renderCalendar();
+}
+function changeMonth(dir) { calMonth+=dir; if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function renderCalendar() {
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent=`${months[calMonth]} ${calYear}`;
+  const today=new Date(), todayStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-day-header">${d}</div>`).join('');
+  const firstDay=new Date(calYear,calMonth,1).getDay(), daysInMonth=new Date(calYear,calMonth+1,0).getDate(), prevDays=new Date(calYear,calMonth,0).getDate();
+  for(let i=firstDay-1;i>=0;i--) html+=`<div class="cal-day other-month"><div class="cal-date">${prevDays-i}</div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entries=calEntries[ds]||[];
+    html+=`<div class="cal-day${ds===todayStr?' today':''}${entries.length?' has-content':''}" onclick="openCalModal('${ds}')">
+      <div class="cal-date">${d}</div>
+      ${entries.map(e=>`<div class="cal-entry" title="${e}">${e}</div>`).join('')}
+      <div class="cal-add">+</div></div>`;
+  }
+  const rem=(7-(firstDay+daysInMonth)%7)%7;
+  for(let d=1;d<=rem;d++) html+=`<div class="cal-day other-month"><div class="cal-date">${d}</div></div>`;
+  document.getElementById('calGrid').innerHTML=html;
+}
+function openCalModal(date) {
+  document.getElementById('calDateInput').value=date;
+  document.getElementById('calNoteInput').value='';
+  document.getElementById('calModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function updateStats() {
+  document.getElementById('statGenerated').textContent=totalGenerated;
+  document.getElementById('statSaved').textContent=savedIdeas.length;
+  document.getElementById('statSessions').textContent=sessions;
+}
+
+
+// EXPAND IDEA
+let currentExpand = null;
+async function expandIdea(btn, idea) {
+  btn.textContent='⏳'; btn.disabled=true;
+  document.getElementById('expandModalTitle').textContent = idea.hook;
+  document.getElementById('expandModalBody').innerHTML=`<div class="modal-loading"><div class="loading-txt">Expanding...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  document.getElementById('expandModal').classList.add('open');
+  const prompt = `${PHIL}
+
+Dalyn Shkapich wants to go DEEP on this content idea:
+Hook: "${idea.hook}"
+Angle: "${idea.angle}"
+
+Expand this into a comprehensive content breakdown. Return ONLY valid JSON (no markdown):
+{
+  "deepDive": "8-10 sentences fully unpacking this topic — the full argument, the nuance, the story behind it, the real-world application. Be raw, specific, and powerful. This is Dalyn thinking out loud at his deepest level.",
+  "whyItMatters": "3-4 sentences on WHY this matters right now — what problem does this solve for the audience?",
+  "personalAngle": "2-3 sentences suggesting a personal story or experience Dalyn could tie in to make this relatable",
+  "commonMistakes": "3 specific mistakes people make related to this topic, each 1-2 sentences",
+  "actionSteps": "4 concrete action steps the viewer can take TODAY based on this content",
+  "relatedIdeas": "3 follow-up video ideas that naturally connect to this one"
+}`;
+  try {
+    const data = await callAPI(prompt);
+    currentExpand = data;
+    document.getElementById('expandModalBody').innerHTML=`
+      <div class="script-section"><div class="script-label">🔥 Deep Dive</div><div class="script-text">${data.deepDive}</div></div>
+      <div class="script-section"><div class="script-label">💡 Why It Matters</div><div class="script-text">${data.whyItMatters}</div></div>
+      <div class="script-section"><div class="script-label">🎯 Personal Angle to Use</div><div class="script-text">${data.personalAngle}</div></div>
+      <div class="script-section"><div class="script-label">❌ Common Mistakes to Call Out</div><div class="script-text" style="white-space:pre-line">${data.commonMistakes}</div></div>
+      <div class="script-section"><div class="script-label">✅ Action Steps for Viewer</div><div class="script-text" style="white-space:pre-line">${data.actionSteps}</div></div>
+      <div class="script-section"><div class="script-label">🔗 Follow-Up Video Ideas</div><div class="script-text" style="white-space:pre-line">${data.relatedIdeas}</div></div>`;
+    btn.textContent='🔥 Expand'; btn.disabled=false;
+  } catch(e) {
+    document.getElementById('expandModalBody').innerHTML=`<div class="error-box">${e.message}</div>`;
+    btn.textContent='🔥 Expand'; btn.disabled=false;
+  }
+}
+function copyExpand() {
+  if(!currentExpand) return;
+  const d = currentExpand;
+  navigator.clipboard.writeText(`DEEP DIVE:\n${d.deepDive}\n\nWHY IT MATTERS:\n${d.whyItMatters}\n\nPERSONAL ANGLE:\n${d.personalAngle}\n\nCOMMON MISTAKES:\n${d.commonMistakes}\n\nACTION STEPS:\n${d.actionSteps}\n\nFOLLOW-UP IDEAS:\n${d.relatedIdeas}`)
+    .then(()=>alert('Copied!'));
+}
+
+// QUOTES & STATS
+let currentQuotes = null;
+async function getQuotesStats(btn, idea) {
+  btn.textContent='⏳'; btn.disabled=true;
+  document.getElementById('quotesModalTitle').textContent = idea.hook;
+  document.getElementById('quotesModalBody').innerHTML=`<div class="modal-loading"><div class="loading-txt">Finding Quotes & Stats...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  document.getElementById('quotesModal').classList.add('open');
+  const prompt = `${PHIL}
+
+Find supporting quotes and stats for this content idea from Dalyn Shkapich:
+Hook: "${idea.hook}"
+Angle: "${idea.angle}"
+
+Return ONLY valid JSON (no markdown):
+{
+  "quotes": [
+    {"text": "the quote", "author": "who said it", "context": "1 sentence on why this supports Dalyn's point"},
+    {"text": "the quote", "author": "who said it", "context": "1 sentence on why this supports Dalyn's point"},
+    {"text": "the quote", "author": "who said it", "context": "1 sentence on why this supports Dalyn's point"},
+    {"text": "the quote", "author": "who said it", "context": "1 sentence on why this supports Dalyn's point"},
+    {"text": "the quote", "author": "who said it", "context": "1 sentence on why this supports Dalyn's point"}
+  ],
+  "stats": [
+    {"stat": "the statistic or research finding", "source": "where it's from", "context": "1 sentence on how to use this in the video"},
+    {"stat": "the statistic or research finding", "source": "where it's from", "context": "1 sentence on how to use this in the video"},
+    {"stat": "the statistic or research finding", "source": "where it's from", "context": "1 sentence on how to use this in the video"}
+  ],
+  "daylinsPhilosophy": "Pull the 2-3 most relevant quotes from Dalyn's own philosophy that tie directly to this idea and explain the connection"
+}
+
+Use real, well-known quotes from philosophers, athletes, entrepreneurs, stoics, scientists. Stats should be real research findings. Prioritize powerful, memorable ones.`;
+  try {
+    const data = await callAPI(prompt);
+    currentQuotes = data;
+    const quotesHtml = (data.quotes||[]).map(q=>`
+      <div style="background:var(--card2);border:1px solid var(--border2);border-radius:5px;padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="navigator.clipboard.writeText('${q.text.replace(/'/g,"\'")} — ${q.author}').then(()=>alert('Copied!'))">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.03em;margin-bottom:6px;color:var(--gold)">"${q.text}"</div>
+        <div style="font-size:11px;color:var(--orange);margin-bottom:6px;font-weight:600">— ${q.author}</div>
+        <div style="font-size:11px;color:#777;font-weight:300">${q.context}</div>
+        <div style="font-size:9px;color:var(--muted2);margin-top:6px;letter-spacing:0.1em">CLICK TO COPY</div>
+      </div>`).join('');
+    const statsHtml = (data.stats||[]).map(s=>`
+      <div style="background:var(--card2);border:1px solid var(--border2);border-radius:5px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:var(--white)">${s.stat}</div>
+        <div style="font-size:10px;color:var(--blue);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">${s.source}</div>
+        <div style="font-size:11px;color:#777;font-weight:300">${s.context}</div>
+      </div>`).join('');
+    document.getElementById('quotesModalBody').innerHTML=`
+      <div class="script-section"><div class="script-label" style="color:var(--gold)">💬 Powerful Quotes (click to copy)</div>${quotesHtml}</div>
+      <div class="script-section"><div class="script-label" style="color:var(--blue)">📊 Stats & Research</div>${statsHtml}</div>
+      <div class="script-section"><div class="script-label">🔥 Dalyn's Own Philosophy That Connects</div><div class="script-text">${data.daylinsPhilosophy||''}</div></div>`;
+    btn.textContent='💬 Quotes & Stats'; btn.disabled=false;
+  } catch(e) {
+    document.getElementById('quotesModalBody').innerHTML=`<div class="error-box">${e.message}</div>`;
+    btn.textContent='💬 Quotes & Stats'; btn.disabled=false;
+  }
+}
+function copyQuotes() {
+  if(!currentQuotes) return;
+  const q = (currentQuotes.quotes||[]).map(q=>`"${q.text}" — ${q.author}`).join('\n');
+  const s = (currentQuotes.stats||[]).map(s=>`${s.stat} (${s.source})`).join('\n');
+  navigator.clipboard.writeText(`QUOTES:\n${q}\n\nSTATS:\n${s}`).then(()=>alert('Copied!'));
+}
+
+// ONE-LINERS
+async function getOneLiners(btn, idea) {
+  btn.textContent='⏳'; btn.disabled=true;
+  document.getElementById('onelinersModalTitle').textContent = idea.hook;
+  document.getElementById('onelinersModalBody').innerHTML=`<div class="modal-loading"><div class="loading-txt">Crafting One-Liners...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  document.getElementById('onelinersModal').classList.add('open');
+
+  const DALYN_ONELINERS = `Dalyn's existing one-liners for reference style:
+"There's no shame in being weak, the shame is in staying weak"
+"A calm ocean never made a skilled sailor"
+"Nothing changes if nothing changes"
+"Losers fear rejection, winners fear regret"
+"Brick by brick is the only way"
+"Be a buffalo — ride into the storm"
+"Ships are safe in the harbor but that's not what ships are for"
+"Choose your hard"
+"If you're not changing you're choosing it"
+"Done is better than perfect"
+"You fall to the level of your systems, not your goals"
+"Courage is a skill, not a trait"
+"Behavior shapes belief"
+"Chase purpose not pleasure"
+"Getting better is what brings riches"
+"If you don't give up you can't lose"
+"Extreme ownership even when it's not your fault"
+"Every goal needs a daily action or it's just a dream"
+"The first 90 minutes set the tone"
+"Health is your wealth"`;
+
+  const prompt = `${DALYN_ONELINERS}
+
+Generate powerful one-liners for this content idea. Match Dalyn's raw, punchy, no-fluff style:
+Hook: "${idea.hook}"
+Angle: "${idea.angle}"
+
+Return ONLY valid JSON (no markdown):
+{
+  "oneliners": [
+    "one-liner 1",
+    "one-liner 2",
+    "one-liner 3",
+    "one-liner 4",
+    "one-liner 5",
+    "one-liner 6",
+    "one-liner 7",
+    "one-liner 8",
+    "one-liner 9",
+    "one-liner 10"
+  ],
+  "tipsTricks": [
+    {"tip": "specific practical tip related to this topic", "why": "1 sentence on why it works"},
+    {"tip": "specific practical tip", "why": "1 sentence on why it works"},
+    {"tip": "specific practical tip", "why": "1 sentence on why it works"},
+    {"tip": "specific practical tip", "why": "1 sentence on why it works"},
+    {"tip": "specific practical tip", "why": "1 sentence on why it works"}
+  ]
+}
+
+One-liners should be short, punchy, memorable — under 15 words each. Tips should be SPECIFIC and actionable, not vague.`;
+  try {
+    const data = await callAPI(prompt);
+    const oHtml = (data.oneliners||[]).map(l=>`
+      <div style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:12px 16px;margin-bottom:8px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.03em;transition:all 0.2s" 
+        onmouseover="this.style.borderColor='var(--orange)';this.style.color='var(--orange)'" 
+        onmouseout="this.style.borderColor='';this.style.color=''"
+        onclick="navigator.clipboard.writeText('${l.replace(/'/g,"\'")}').then(()=>alert('Copied: ${l.replace(/'/g,"\'").replace(/"/g,"&quot;")}'))">
+        ${l}
+        <span style="font-size:9px;letter-spacing:0.15em;color:var(--muted);margin-left:10px;font-family:'DM Sans',sans-serif">CLICK TO COPY</span>
+      </div>`).join('');
+    const tHtml = (data.tipsTricks||[]).map(t=>`
+      <div style="background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:12px 16px;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">💡 ${t.tip}</div>
+        <div style="font-size:11px;color:#777;font-weight:300">${t.why}</div>
+      </div>`).join('');
+    document.getElementById('onelinersModalBody').innerHTML=`
+      <div class="script-section"><div class="script-label">⚡ Power One-Liners (click any to copy)</div>${oHtml}</div>
+      <div class="script-section" style="margin-top:20px"><div class="script-label">🛠 Tips & Tricks</div>${tHtml}</div>`;
+    btn.textContent='⚡ One-Liners'; btn.disabled=false;
+  } catch(e) {
+    document.getElementById('onelinersModalBody').innerHTML=`<div class="error-box">${e.message}</div>`;
+    btn.textContent='⚡ One-Liners'; btn.disabled=false;
+  }
+}
+
+
+// ═══════════════════════════════
+//  INSPO
+// ═══════════════════════════════
+let ytApiKey = localStorage.getItem('ds_ytkey') || '';
+let currentInspoTab = 'youtube';
+
+function saveYtKey() {
+  const val = document.getElementById('ytKeyInput').value.trim();
+  if (!val) return;
+  ytApiKey = val;
+  localStorage.setItem('ds_ytkey', val);
+  document.getElementById('ytKeyInput').value = '••••••••••••••••';
+  alert('YouTube API key saved!');
+}
+
+// Load saved YT key
+(function() {
+  if (ytApiKey) document.getElementById('ytKeyInput').value = '••••••••••••••••';
+})();
+
+function switchInspoTab(tab) {
+  currentInspoTab = tab;
+  document.querySelectorAll('.inspo-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.inspo-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('inspo-' + tab).style.display = 'block';
+}
+
+async function loadInspo() {
+  const query = document.getElementById('inspoSearch').value.trim() || 'mindset motivation personal development';
+  const btn = document.getElementById('inspoBtn');
+  btn.disabled = true; btn.textContent = '...LOADING';
+
+  // Load all tabs in parallel
+  await Promise.all([
+    loadYouTube(query),
+    loadReddit(query),
+    loadQuotes(query),
+    loadArticles(query)
+  ]);
+
+  btn.disabled = false; btn.textContent = '🔥 LOAD FEED';
+}
+
+// YOUTUBE
+async function loadYouTube(query) {
+  const panel = document.getElementById('inspo-youtube');
+  if (!ytApiKey) {
+    panel.innerHTML = `<div class="yt-key-notice">
+      <strong style="color:var(--orange)">You need a free YouTube API key to load videos.</strong><br><br>
+      1. Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>
+      2. Create a free project → Enable "YouTube Data API v3"<br>
+      3. Go to Credentials → Create API Key → copy it<br>
+      4. Paste it in the YouTube API Key field above and hit Save YT Key<br><br>
+      <em style="color:#666">It's free and takes about 3 minutes.</em>
+    </div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="loading-wrap"><div class="loading-txt">Loading Videos...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  try {
+    const searchQ = encodeURIComponent(query + ' motivation rant personal development');
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQ}&type=video&maxResults=12&relevanceLanguage=en&key=${ytApiKey}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const html = data.items.map(v => `
+      <div class="yt-card">
+        <img class="yt-thumb" src="${v.snippet.thumbnails.medium.url}" onclick="playYT('${v.id.videoId}', this)" alt="${v.snippet.title}"/>
+        <div class="yt-info">
+          <div class="yt-title" onclick="window.open('https://youtube.com/watch?v=${v.id.videoId}','_blank')">${v.snippet.title}</div>
+          <div class="yt-meta">${v.snippet.channelTitle} · ${new Date(v.snippet.publishedAt).toLocaleDateString()}</div>
+        </div>
+      </div>`).join('');
+    panel.innerHTML = `<div class="yt-grid">${html}</div>`;
+  } catch(e) {
+    panel.innerHTML = `<div class="error-box"><strong>YouTube Error:</strong> ${e.message}</div>`;
+  }
+}
+
+function playYT(videoId, thumbEl) {
+  const card = thumbEl.parentElement;
+  const iframe = document.createElement('iframe');
+  iframe.className = 'yt-embed';
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  card.replaceChild(iframe, thumbEl);
+}
+
+// REDDIT
+async function loadReddit(query) {
+  const panel = document.getElementById('inspo-reddit');
+  panel.innerHTML = `<div class="loading-wrap"><div class="loading-txt">Loading Reddit...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  const subs = ['selfimprovement', 'getdisciplined', 'motivation', 'stoicism', 'fitness', 'decidingtobebetter'];
+  try {
+    const sub = subs[Math.floor(Math.random() * subs.length)];
+    const res = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=20`, {headers:{'Accept':'application/json'}});
+    const data = await res.json();
+    const posts = data.data.children.filter(p => !p.data.stickied && p.data.score > 100);
+    const html = posts.slice(0,12).map(p => {
+      const post = p.data;
+      const preview = post.selftext ? post.selftext.slice(0,200) + (post.selftext.length > 200 ? '...' : '') : '';
+      return `<div class="reddit-card">
+        <div class="reddit-sub">r/${post.subreddit} · ⬆ ${post.score.toLocaleString()}</div>
+        <div class="reddit-title" onclick="window.open('https://reddit.com${post.permalink}','_blank')">${post.title}</div>
+        ${preview ? `<div class="reddit-preview">${preview}</div>` : ''}
+        <div class="reddit-meta">
+          <span>💬 ${post.num_comments} comments</span>
+          <span>u/${post.author}</span>
+          <span style="color:var(--orange);cursor:pointer" onclick="window.open('https://reddit.com${post.permalink}','_blank')">Read →</span>
+        </div>
+      </div>`;
+    }).join('');
+    panel.innerHTML = `<div style="margin-bottom:12px;font-size:11px;color:var(--muted)">Showing hot posts from r/${sub} — refresh for different communities</div><div class="reddit-list">${html}</div>`;
+  } catch(e) {
+    panel.innerHTML = `<div class="error-box">Could not load Reddit. Try again.</div>`;
+  }
+}
+
+// QUOTES — uses Claude API
+async function loadQuotes(query) {
+  const panel = document.getElementById('inspo-quotes');
+  if (!apiKey) { panel.innerHTML = `<div class="error-box">Add your Anthropic API key in the sidebar to generate quotes.</div>`; return; }
+  panel.innerHTML = `<div class="loading-wrap"><div class="loading-txt">Generating Quotes...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  const prompt = `Generate 16 powerful, memorable quotes related to "${query}" for personal development content.
+
+Mix of: ancient philosophers (Stoics, Marcus Aurelius, Seneca, Epictetus), modern thinkers (Jocko Willink, David Goggins, Jordan Peterson, Naval Ravikant, Kobe Bryant, Muhammad Ali, Winston Churchill), and timeless wisdom.
+
+Return ONLY valid JSON array (no markdown):
+[{"text":"the quote","author":"who said it"}]
+
+Make them POWERFUL and memorable. Prioritize lesser-known gems over overused ones.`;
+  try {
+    const quotes = await callAPI(prompt);
+    const html = quotes.map(q => `
+      <div class="quote-card" onclick="navigator.clipboard.writeText('"${q.text.replace(/"/g,"'")}" — ${q.author}').then(()=>alert('Copied!'))">
+        <div class="quote-text">"${q.text}"</div>
+        <div class="quote-author">— ${q.author}</div>
+        <div style="font-size:9px;color:var(--muted2);margin-top:8px;letter-spacing:0.1em">CLICK TO COPY</div>
+      </div>`).join('');
+    panel.innerHTML = `<div class="quotes-masonry">${html}</div>`;
+  } catch(e) {
+    panel.innerHTML = `<div class="error-box">${e.message}</div>`;
+  }
+}
+
+// ARTICLES — curated RSS via allorigins proxy
+async function loadArticles(query) {
+  const panel = document.getElementById('inspo-articles');
+  panel.innerHTML = `<div class="loading-wrap"><div class="loading-txt">Loading Articles...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+  
+  const feeds = [
+    {name:'James Clear', url:'https://jamesclear.com/feed', color:'var(--orange)'},
+    {name:'Mark Manson', url:'https://markmanson.net/feed', color:'var(--gold)'},
+    {name:'Tim Ferriss', url:'https://tim.blog/feed', color:'var(--green)'},
+    {name:'Paul Graham', url:'http://www.paulgraham.com/rss.html', color:'var(--blue)'},
+  ];
+
+  try {
+    const results = await Promise.allSettled(feeds.map(async feed => {
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+      const data = await res.json();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, 'text/xml');
+      const items = Array.from(xml.querySelectorAll('item')).slice(0,4);
+      return items.map(item => ({
+        source: feed.name,
+        color: feed.color,
+        title: item.querySelector('title')?.textContent || '',
+        desc: (item.querySelector('description')?.textContent || '').replace(/<[^>]*>/g,'').slice(0,150) + '...',
+        link: item.querySelector('link')?.textContent || '#',
+        date: item.querySelector('pubDate')?.textContent || ''
+      }));
+    }));
+
+    const articles = results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
+    if (!articles.length) throw new Error('No articles loaded');
+    
+    const html = articles.map(a => `
+      <div class="article-card">
+        <div style="flex:1">
+          <div class="article-source" style="color:${a.color}">${a.source}</div>
+          <div class="article-title" onclick="window.open('${a.link}','_blank')">${a.title}</div>
+          <div class="article-desc">${a.desc}</div>
+        </div>
+        <button class="btn-card" onclick="window.open('${a.link}','_blank')" style="flex-shrink:0;align-self:center">Read →</button>
+      </div>`).join('');
+    panel.innerHTML = `<div class="article-list">${html}</div>`;
+  } catch(e) {
+    panel.innerHTML = `<div class="error-box">Could not load articles. Try again.</div>`;
+  }
+}
+
+// INIT
+renderCalendar(); updateStats();
+document.getElementById('scriptModal').addEventListener('click',function(e){if(e.target===this)closeModal('scriptModal');});
+document.getElementById('calModal').addEventListener('click',function(e){if(e.target===this)closeModal('calModal');});
+document.getElementById('expandModal').addEventListener('click',function(e){if(e.target===this)closeModal('expandModal');});
+document.getElementById('quotesModal').addEventListener('click',function(e){if(e.target===this)closeModal('quotesModal');});
+document.getElementById('onelinersModal').addEventListener('click',function(e){if(e.target===this)closeModal('onelinersModal');});
+</script>
+</body>
+</html>
