@@ -306,9 +306,10 @@ select:hover,select:focus,.text-input:focus { border-color:var(--orange); }
       <div class="ctrl-group">
         <div class="ctrl-label">Count</div>
         <select id="countSelect">
-          <option value="3">3 Ideas</option>
-          <option value="6" selected>6 Ideas</option>
-          <option value="9">9 Ideas</option>
+          <option value="6">6 Ideas</option>
+          <option value="12">12 Ideas</option>
+          <option value="20">20 Ideas</option>
+          <option value="30" selected>Full Page (30)</option>
         </select>
       </div>
       <button class="btn-primary" id="generateBtn" onclick="generateIdeas()">⚡ GENERATE</button>
@@ -597,12 +598,33 @@ async function callAPI(prompt) {
   if (!apiKey) throw new Error('No API key — paste yours in the sidebar.');
   const res = await fetch('/api/generate', {
     method:'POST', headers:{'Content-Type':'application/json','x-api-key':apiKey},
-    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,messages:[{role:'user',content:prompt}]})
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:6000,messages:[{role:'user',content:prompt}]})
   });
   const data = await res.json();
   if (data.error) throw new Error(typeof data.error==='string'?data.error:data.error.message);
   const txt = data.content.map(i=>i.text||'').join('');
-  return JSON.parse(txt.replace(/```json|```/g,'').trim());
+  // Robust JSON parsing — handles truncated responses
+  let cleaned = txt.replace(/```json|```/g,'').trim();
+  // Try to fix truncated JSON by finding the last complete object
+  try {
+    return JSON.parse(cleaned);
+  } catch(e) {
+    // Try to repair truncated JSON array
+    const lastBracket = cleaned.lastIndexOf('}');
+    if (lastBracket !== -1) {
+      let fixed = cleaned.substring(0, lastBracket + 1);
+      // Close the array if needed
+      if (fixed.trimStart().startsWith('[') && !fixed.trimEnd().endsWith(']')) {
+        fixed = fixed + ']';
+      }
+      // Close object if needed
+      if (fixed.trimStart().startsWith('{') && !fixed.trimEnd().endsWith('}')) {
+        fixed = fixed + '}';
+      }
+      try { return JSON.parse(fixed); } catch(e2) {}
+    }
+    throw new Error('Could not parse response — try generating fewer ideas (3 instead of 6)');
+  }
 }
 
 function showLoading(id) {
@@ -610,55 +632,79 @@ function showLoading(id) {
 }
 
 // IDEAS
-async function generateIdeas() {
-  if (!apiKey) { setApiStatus('Paste API key!',''); return; }
-  const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='...';
-  showLoading('ideasArea');
-  const topic = document.getElementById('topicSelect').options[document.getElementById('topicSelect').selectedIndex].text;
-  const style = document.getElementById('styleSelect').options[document.getElementById('styleSelect').selectedIndex].text;
-  const count = document.getElementById('countSelect').value;
-  const prompt = `${PHIL}
+function ideaCardHtml(idea, i) {
+  return `<div class="idea-card">
+    <div class="idea-num">IDEA ${String(i+1).padStart(2,'0')}</div>
+    <div class="idea-hook">${idea.hook}</div>
+    <div class="idea-tags">${(idea.tags||[]).map(t=>`<span class="tag ${tagClass(t)}">${t}</span>`).join('')}</div>
+    <div class="idea-angle">${idea.angle}</div>
+    ${idea.keypoints ? `<div style="margin-top:2px;padding:10px 12px;background:rgba(232,73,15,0.05);border-radius:4px;border:1px solid rgba(232,73,15,0.12)"><div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;font-weight:600">Key Talking Points</div><div style="font-size:12px;color:#888;line-height:1.7;white-space:pre-line">${idea.keypoints}</div></div>` : ''}
+    <div class="idea-cta">🎯 "${idea.cta}"</div>
+    <div class="idea-actions">
+      <button class="btn-card" onclick="saveIdea(this,${esc(idea)})">🔖 Save</button>
+      <button class="btn-card" onclick="openScript(this,${esc(idea)})">📝 Script</button>
+      <button class="btn-card" onclick="expandIdea(this,${esc(idea)})">🔥 Expand</button>
+      <button class="btn-card" onclick="getQuotesStats(this,${esc(idea)})">💬 Quotes & Stats</button>
+      <button class="btn-card" onclick="getOneLiners(this,${esc(idea)})">⚡ One-Liners</button>
+      <button class="btn-card" onclick="scheduleIdea(${esc(idea)})">📅 Schedule</button>
+    </div>
+  </div>`;
+}
 
-Generate exactly ${count} short-form video content ideas. Topic: "${topic}". Style: "${style}".
+function buildIdeasPrompt(topic, style, batchNum) {
+  return `${PHIL}
 
-Each idea must be FULLY developed with rich detail — not vague or generic. Think like a content strategist who knows Dalyn deeply.
+Generate exactly 6 unique short-form video content ideas. Topic: "${topic}". Style: "${style}". Batch ${batchNum} — make these DIFFERENT from any previous batch, fresh angles only.
 
 Return ONLY valid JSON array (no markdown):
 [{
-  "hook": "Scroll-stopping title — bold, provocative, max 10 words. Should make someone stop dead in their feed.",
-  "angle": "4-6 sentences. Be SPECIFIC: what exact point does Dalyn make? What story or example backs it up? What is the emotional tension or contrast that makes it compelling? What does the audience walk away believing or feeling? Make this meaty and actionable.",
-  "keypoints": "3 specific bullet points Dalyn should hit in the video, written as talking points",
-  "cta": "One punchy specific closing call to action — not generic like 'follow me', make it tied to the content",
+  "hook": "Scroll-stopping title — bold, max 10 words",
+  "angle": "4-5 sentences. Specific point, story or example, emotional tension, what viewer walks away with.",
+  "keypoints": "• Point 1\n• Point 2\n• Point 3",
+  "cta": "One punchy closing call to action tied to the content",
   "tags": ["tag1","tag2"]
 }]
 
 Tags only from: mindset, discipline, action, identity, adversity, purpose, confidence, habits, fitness, health, relationships, success, productivity, gratitude
-Hooks must be BOLD and raw. Sound like Dalyn — real, direct, zero corporate self-help fluff. Every idea should feel like it could go viral.`;
+Raw, direct, zero fluff. Sound like Dalyn.`;
+}
+
+async function generateIdeas() {
+  if (!apiKey) { setApiStatus('Paste API key!',''); return; }
+  const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='...';
+  const topic = document.getElementById('topicSelect').options[document.getElementById('topicSelect').selectedIndex].text;
+  const style = document.getElementById('styleSelect').options[document.getElementById('styleSelect').selectedIndex].text;
+  const total = parseInt(document.getElementById('countSelect').value);
+  const batches = Math.ceil(total / 6);
+
+  // Show loading with progress
+  document.getElementById('ideasArea').innerHTML=`<div class="loading-wrap"><div class="loading-txt" id="loadTxt">Generating batch 1 of ${batches}...</div><div class="loading-bar"><div class="loading-fill"></div></div></div>`;
+
+  let allIdeas = [];
   try {
-    const ideas = await callAPI(prompt);
-    totalGenerated += ideas.length; sessions++;
-    const html = ideas.map((idea,i)=>`
-      <div class="idea-card">
-        <div class="idea-num">IDEA ${String(i+1).padStart(2,'0')}</div>
-        <div class="idea-hook">${idea.hook}</div>
-        <div class="idea-tags">${(idea.tags||[]).map(t=>`<span class="tag ${tagClass(t)}">${t}</span>`).join('')}</div>
-        <div class="idea-angle">${idea.angle}</div>
-        ${idea.keypoints ? `<div style="margin-top:2px;padding:10px 12px;background:rgba(232,73,15,0.05);border-radius:4px;border:1px solid rgba(232,73,15,0.12)"><div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;font-weight:600">Key Talking Points</div><div style="font-size:12px;color:#888;line-height:1.7;white-space:pre-line">${idea.keypoints}</div></div>` : ''}
-        <div class="idea-cta">🎯 "${idea.cta}"</div>
-        <div class="idea-actions">
-          <button class="btn-card" onclick="saveIdea(this,${esc(idea)})">🔖 Save</button>
-          <button class="btn-card" onclick="openScript(this,${esc(idea)})">📝 Script</button>
-          <button class="btn-card" onclick="expandIdea(this,${esc(idea)})">🔥 Expand</button>
-          <button class="btn-card" onclick="getQuotesStats(this,${esc(idea)})">💬 Quotes & Stats</button>
-          <button class="btn-card" onclick="getOneLiners(this,${esc(idea)})">⚡ One-Liners</button>
-          <button class="btn-card" onclick="scheduleIdea(${esc(idea)})">📅 Schedule</button>
-        </div>
-      </div>`).join('');
-    document.getElementById('ideasArea').innerHTML=`<div class="ideas-grid">${html}</div>`;
+    for (let b = 0; b < batches; b++) {
+      document.getElementById('loadTxt').textContent = `Generating batch ${b+1} of ${batches}...`;
+      const ideas = await callAPI(buildIdeasPrompt(topic, style, b+1));
+      allIdeas = allIdeas.concat(Array.isArray(ideas) ? ideas : [ideas]);
+      // Show ideas as they come in
+      const html = allIdeas.slice(0, total).map((idea,i) => ideaCardHtml(idea,i)).join('');
+      document.getElementById('ideasArea').innerHTML=`<div class="ideas-grid">${html}</div>`;
+      if (b < batches-1) {
+        // Small pause between batches
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+    totalGenerated += allIdeas.length; sessions++;
     document.getElementById('statsRow').style.display='flex';
     updateStats();
   } catch(e) {
-    document.getElementById('ideasArea').innerHTML=`<div class="error-box"><strong>Error:</strong> ${e.message}</div>`;
+    if (allIdeas.length > 0) {
+      // Show what we got even if a batch failed
+      const html = allIdeas.map((idea,i) => ideaCardHtml(idea,i)).join('');
+      document.getElementById('ideasArea').innerHTML=`<div class="ideas-grid">${html}</div><div class="error-box" style="margin-top:16px">Some batches failed: ${e.message}</div>`;
+    } else {
+      document.getElementById('ideasArea').innerHTML=`<div class="error-box"><strong>Error:</strong> ${e.message}</div>`;
+    }
   } finally { btn.disabled=false; btn.textContent='⚡ GENERATE'; }
 }
 
