@@ -683,7 +683,7 @@ async function generateIdeas() {
   let allIdeas = [];
   try {
     for (let b = 0; b < batches; b++) {
-      document.getElementById('loadTxt').textContent = `Generating batch ${b+1} of ${batches}...`;
+      const loadTxt = document.getElementById('loadTxt'); if(loadTxt) loadTxt.textContent = `Generating batch ${b+1} of ${batches}...`;
       const ideas = await callAPI(buildIdeasPrompt(topic, style, b+1));
       allIdeas = allIdeas.concat(Array.isArray(ideas) ? ideas : [ideas]);
       // Show ideas as they come in
